@@ -11,3 +11,4 @@ class YaleXSBLEBatteryData:
 
     address: str
     lock: PushLock
+    read_activity_log: bool

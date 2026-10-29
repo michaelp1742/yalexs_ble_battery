@@ -67,13 +67,19 @@ async def owner_entry(hass: HomeAssistant) -> MockConfigEntry:
 
 
 @pytest.fixture
-def config_entry(hass: HomeAssistant) -> MockConfigEntry:
+def read_activity_log() -> bool:
+    """Return the activity log option of the battery entry."""
+    return False
+
+
+@pytest.fixture
+def config_entry(hass: HomeAssistant, read_activity_log: bool) -> MockConfigEntry:
     """Return the battery entry for the lock, not yet set up."""
     entry = MockConfigEntry(
         domain=DOMAIN,
         title=TITLE,
         data={CONF_ADDRESS: ADDRESS},
-        options={CONF_READ_ACTIVITY_LOG: False},
+        options={CONF_READ_ACTIVITY_LOG: read_activity_log},
         unique_id=ADDRESS,
     )
     entry.add_to_hass(hass)

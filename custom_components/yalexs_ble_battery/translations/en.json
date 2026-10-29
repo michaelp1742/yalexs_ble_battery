@@ -12,9 +12,28 @@
       }
     }
   },
+  "entity": {
+    "sensor": {
+      "battery_voltage_activity_log": {
+        "name": "Battery voltage (activity log)"
+      }
+    }
+  },
   "exceptions": {
     "owner_not_loaded": {
       "message": "Yale Access Bluetooth has not loaded this lock"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "read_activity_log": "Read the activity log for the battery voltage"
+        },
+        "data_description": {
+          "read_activity_log": "Home Assistant reads each record off the lock. A record it reads never reaches the Yale Home or August app's activity feed or the cloud."
+        }
+      }
     }
   }
 }
