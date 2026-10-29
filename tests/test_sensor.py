@@ -1,6 +1,6 @@
 """Tests for the Yale Access Bluetooth Battery sensor."""
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, Mock
 
 import pytest
 from pytest_homeassistant_custom_component.common import (
@@ -20,6 +20,7 @@ from homeassistant.const import STATE_UNKNOWN, EntityCategory
 from homeassistant.core import HomeAssistant, State
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import device_registry as dr, entity_registry as er
+from homeassistant.setup import async_setup_component
 
 from . import ADDRESS, TITLE
 
@@ -84,6 +85,9 @@ async def test_option_on_adds_sensor_on_linked_device(
         connections={(dr.CONNECTION_BLUETOOTH, lock.address)},
         identifiers={(OWNER_DOMAIN, "serial")},
     )
+    # Unloading a platform never forwarded logs "Ignored unload request" only
+    # while the sensor component is loaded, and core's yalexs_ble entries load it.
+    assert await async_setup_component(hass, "sensor", {})
     assert await hass.config_entries.async_setup(config_entry.entry_id)
 
     await _async_set_option(hass, config_entry, True)
@@ -201,6 +205,13 @@ async def test_option_off_removes_reader_and_leaves_sensor_unavailable(
     remove_reader.assert_called_once()
     lock.register_log_record_callback.assert_called_once()
     assert hass.states.get(ENTITY_ID).state == "unavailable"
+
+    entry_listener = Mock()
+    config_entry.async_on_state_change(entry_listener)
+    assert await hass.config_entries.async_unload(owner_entry.entry_id)
+    await hass.async_block_till_done()
+
+    entry_listener.assert_not_called()
 
 
 async def test_disabled_sensor_registers_no_reader(

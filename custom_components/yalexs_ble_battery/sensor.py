@@ -1,6 +1,6 @@
 """Battery voltage sensor for the Yale Access Bluetooth Battery integration."""
 
-from typing import override
+from typing import TYPE_CHECKING, override
 
 from yalexs_ble import LockOperation, parse_log_event_packet
 
@@ -26,6 +26,8 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up the battery voltage sensor."""
+    if TYPE_CHECKING:
+        assert entry.runtime_data is not None
     async_add_entities([YaleXSBLEBatteryVoltageSensor(entry.runtime_data)])
 
 

@@ -4,6 +4,7 @@ from datetime import timedelta
 from unittest.mock import Mock
 
 from freezegun.api import FrozenDateTimeFactory
+import pytest
 from pytest_homeassistant_custom_component.common import (
     MockConfigEntry,
     async_fire_time_changed,
@@ -13,32 +14,56 @@ from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 
+from . import FRONT_ADDRESS, FRONT_TITLE, async_setup_owner
 
-async def test_option_off_registers_no_reader(
+
+@pytest.fixture
+def read_activity_log() -> bool:
+    """Return the activity log option of the battery entry."""
+    return True
+
+
+@pytest.mark.parametrize("read_activity_log", [False])
+async def test_option_off_leaves_entry_idle(
     hass: HomeAssistant,
     entity_registry: er.EntityRegistry,
-    owner_entry: MockConfigEntry,
     config_entry: MockConfigEntry,
 ) -> None:
-    """With the option off, the entry loads with no entity and no reader."""
-    lock = owner_entry.runtime_data.lock
+    """With the option off, the entry loads and runs nothing for the lock."""
     assert await hass.config_entries.async_setup(config_entry.entry_id)
 
+    # No entry of core's exists yet; with the option on, this setup would retry.
     assert config_entry.state is ConfigEntryState.LOADED
-    assert config_entry.runtime_data.lock is lock
-    assert (
-        er.async_entries_for_config_entry(entity_registry, config_entry.entry_id) == []
-    )
-    lock.register_log_record_callback.assert_not_called()
+    assert config_entry.runtime_data is None
 
-    assert await hass.config_entries.async_unload(config_entry.entry_id)
+    owner_entry = await async_setup_owner(hass)
+    lock = owner_entry.runtime_data.lock
     core_listener = Mock()
     owner_entry.async_on_state_change(core_listener)
+    entry_listener = Mock()
+    config_entry.async_on_state_change(entry_listener)
     assert await hass.config_entries.async_unload(owner_entry.entry_id)
     await hass.async_block_till_done()
 
     core_listener.assert_called()
-    assert config_entry.state is ConfigEntryState.NOT_LOADED
+    entry_listener.assert_not_called()
+    assert (
+        er.async_entries_for_config_entry(entity_registry, config_entry.entry_id) == []
+    )
+    lock.register_log_record_callback.assert_not_called()
+    assert await hass.config_entries.async_unload(config_entry.entry_id)
+
+
+async def test_setup_takes_the_lock_of_core_entry_for_its_address(
+    hass: HomeAssistant, config_entry: MockConfigEntry
+) -> None:
+    """Setup takes the PushLock of the loaded core entry with the entry's address."""
+    await async_setup_owner(hass, FRONT_ADDRESS, FRONT_TITLE)
+    owner_entry = await async_setup_owner(hass)
+
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
+
+    assert config_entry.runtime_data.lock is owner_entry.runtime_data.lock
 
 
 async def test_core_unload_reloads_entry_until_core_loads(
@@ -72,11 +97,16 @@ async def test_core_change_reaches_the_next_listener(
 ) -> None:
     """The entry's reload waits until core's entry has called every listener."""
     assert await hass.config_entries.async_setup(config_entry.entry_id)
-    seen: list[ConfigEntryState] = []
-    owner_entry.async_on_state_change(lambda: seen.append(owner_entry.state))
+    seen: list[tuple[ConfigEntryState, ConfigEntryState]] = []
+    owner_entry.async_on_state_change(
+        lambda: seen.append((owner_entry.state, config_entry.state))
+    )
 
     assert await hass.config_entries.async_unload(owner_entry.entry_id)
     await hass.async_block_till_done()
 
-    assert seen == [ConfigEntryState.UNLOAD_IN_PROGRESS, ConfigEntryState.NOT_LOADED]
+    assert seen == [
+        (ConfigEntryState.UNLOAD_IN_PROGRESS, ConfigEntryState.LOADED),
+        (ConfigEntryState.NOT_LOADED, ConfigEntryState.LOADED),
+    ]
     assert config_entry.state is ConfigEntryState.SETUP_RETRY

@@ -8,6 +8,8 @@ from homeassistant.core import HomeAssistant
 
 ADDRESS = "AA:BB:CC:DD:EE:FF"
 TITLE = "Back Door"
+FRONT_ADDRESS = "11:22:33:44:55:66"
+FRONT_TITLE = "Front Door"
 
 
 async def async_setup_owner(

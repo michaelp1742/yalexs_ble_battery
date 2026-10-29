@@ -8,10 +8,7 @@ from homeassistant.const import CONF_ADDRESS
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 
-from . import ADDRESS, TITLE, async_setup_owner
-
-FRONT_ADDRESS = "11:22:33:44:55:66"
-FRONT_TITLE = "Front Door"
+from . import ADDRESS, FRONT_ADDRESS, FRONT_TITLE, TITLE, async_setup_owner
 
 
 def _listed_locks(result: dict[str, Any]) -> list[dict[str, str]]:
@@ -22,7 +19,7 @@ def _listed_locks(result: dict[str, Any]) -> list[dict[str, str]]:
 async def test_user_flow_lists_each_loaded_lock_once(hass: HomeAssistant) -> None:
     """Each loaded lock gets one entry, and none left aborts the flow."""
     await async_setup_owner(hass)
-    front_owner = await async_setup_owner(hass, FRONT_ADDRESS, FRONT_TITLE)
+    await async_setup_owner(hass, FRONT_ADDRESS, FRONT_TITLE)
 
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": SOURCE_USER}
@@ -50,7 +47,6 @@ async def test_user_flow_lists_each_loaded_lock_once(hass: HomeAssistant) -> Non
         result["flow_id"], {CONF_ADDRESS: FRONT_ADDRESS}
     )
     assert result["type"] is FlowResultType.CREATE_ENTRY
-    assert result["result"].runtime_data.lock is front_owner.runtime_data.lock
 
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": SOURCE_USER}

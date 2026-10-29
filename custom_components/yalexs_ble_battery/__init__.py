@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 PLATFORMS = [Platform.SENSOR]
 
-type YaleXSBLEBatteryConfigEntry = ConfigEntry[YaleXSBLEBatteryData]
+type YaleXSBLEBatteryConfigEntry = ConfigEntry[YaleXSBLEBatteryData | None]
 
 
 @callback
@@ -30,15 +30,16 @@ def async_loaded_owners(hass: HomeAssistant) -> dict[str, YALEXSBLEConfigEntry]:
 async def async_setup_entry(
     hass: HomeAssistant, entry: YaleXSBLEBatteryConfigEntry
 ) -> bool:
-    """Set up the battery entry for a lock that core's yalexs_ble has loaded."""
+    """Set up the battery entry, which runs nothing while its option is off."""
+    if not entry.options[CONF_READ_ACTIVITY_LOG]:
+        entry.runtime_data = None
+        return True
     address = entry.data[CONF_ADDRESS]
     if (owner := async_loaded_owners(hass).get(address)) is None:
         raise ConfigEntryNotReady(
             translation_domain=DOMAIN, translation_key="owner_not_loaded"
         )
-    entry.runtime_data = YaleXSBLEBatteryData(
-        address, owner.runtime_data.lock, entry.options[CONF_READ_ACTIVITY_LOG]
-    )
+    entry.runtime_data = YaleXSBLEBatteryData(address, owner.runtime_data.lock)
 
     @callback
     def _async_owner_changed() -> None:
@@ -48,8 +49,7 @@ async def async_setup_entry(
         hass.loop.call_soon(hass.config_entries.async_schedule_reload, entry.entry_id)
 
     entry.async_on_unload(owner.async_on_state_change(_async_owner_changed))
-    if entry.runtime_data.read_activity_log:
-        await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 
 
@@ -57,6 +57,6 @@ async def async_unload_entry(
     hass: HomeAssistant, entry: YaleXSBLEBatteryConfigEntry
 ) -> bool:
     """Unload a config entry."""
-    if entry.runtime_data.read_activity_log:
-        return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-    return True
+    if entry.runtime_data is None:
+        return True
+    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
