@@ -1,7 +1,7 @@
 """Fixtures for the Yale Access Bluetooth Battery tests."""
 
 from collections.abc import Iterator
-from unittest.mock import Mock
+from unittest.mock import AsyncMock, Mock, create_autospec
 
 import pytest
 from pytest_homeassistant_custom_component.common import (
@@ -11,6 +11,7 @@ from pytest_homeassistant_custom_component.common import (
     mock_integration,
     mock_platform,
 )
+from yalexs_ble import PushLock
 
 from custom_components.yalexs_ble_battery.const import (
     CONF_READ_ACTIVITY_LOG,
@@ -21,7 +22,7 @@ from homeassistant.config_entries import ConfigEntry, ConfigFlow
 from homeassistant.const import CONF_ADDRESS
 from homeassistant.core import HomeAssistant
 
-from . import ADDRESS, TITLE, async_setup_owner, mock_push_lock
+from . import ADDRESS, TITLE, async_setup_owner
 
 
 @pytest.fixture(autouse=True)
@@ -31,12 +32,9 @@ def auto_enable_custom_integrations(enable_custom_integrations: None) -> None:
 
 async def _async_setup_owner_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Load core's entry with a new PushLock, as core does on every load."""
-    entry.runtime_data = Mock(lock=mock_push_lock(entry.data[CONF_ADDRESS]))
-    return True
-
-
-async def _async_unload_owner_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Unload core's entry."""
+    entry.runtime_data = Mock(
+        lock=create_autospec(PushLock, instance=True, address=entry.data[CONF_ADDRESS])
+    )
     return True
 
 
@@ -52,7 +50,7 @@ def mock_owner_integration(hass: HomeAssistant) -> Iterator[None]:
         MockModule(
             OWNER_DOMAIN,
             async_setup_entry=_async_setup_owner_entry,
-            async_unload_entry=_async_unload_owner_entry,
+            async_unload_entry=AsyncMock(return_value=True),
         ),
     )
     mock_platform(hass, f"{OWNER_DOMAIN}.config_flow")

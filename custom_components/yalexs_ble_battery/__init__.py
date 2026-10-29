@@ -18,20 +18,21 @@ PLATFORMS = [Platform.SENSOR]
 type YaleXSBLEBatteryConfigEntry = ConfigEntry[YaleXSBLEBatteryData]
 
 
+@callback
+def async_loaded_owners(hass: HomeAssistant) -> dict[str, YALEXSBLEConfigEntry]:
+    """Return the loaded entries of core's yalexs_ble by lock address."""
+    return {
+        owner.data[CONF_ADDRESS]: owner
+        for owner in hass.config_entries.async_loaded_entries(OWNER_DOMAIN)
+    }
+
+
 async def async_setup_entry(
     hass: HomeAssistant, entry: YaleXSBLEBatteryConfigEntry
 ) -> bool:
     """Set up the battery entry for a lock that core's yalexs_ble has loaded."""
     address = entry.data[CONF_ADDRESS]
-    owner: YALEXSBLEConfigEntry | None = next(
-        (
-            owner
-            for owner in hass.config_entries.async_loaded_entries(OWNER_DOMAIN)
-            if owner.data[CONF_ADDRESS] == address
-        ),
-        None,
-    )
-    if owner is None:
+    if (owner := async_loaded_owners(hass).get(address)) is None:
         raise ConfigEntryNotReady(
             translation_domain=DOMAIN, translation_key="owner_not_loaded"
         )

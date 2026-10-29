@@ -18,7 +18,8 @@ from homeassistant.helpers.selector import (
     SelectSelectorConfig,
 )
 
-from .const import CONF_READ_ACTIVITY_LOG, DOMAIN, OWNER_DOMAIN
+from . import async_loaded_owners
+from .const import CONF_READ_ACTIVITY_LOG, DOMAIN
 
 
 class YaleXSBLEBatteryConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -47,9 +48,9 @@ class YaleXSBLEBatteryConfigFlow(ConfigFlow, domain=DOMAIN):
 
         current_addresses = self._async_current_ids()
         self._titles = {
-            owner.data[CONF_ADDRESS]: owner.title
-            for owner in self.hass.config_entries.async_loaded_entries(OWNER_DOMAIN)
-            if owner.data[CONF_ADDRESS] not in current_addresses
+            address: owner.title
+            for address, owner in async_loaded_owners(self.hass).items()
+            if address not in current_addresses
         }
         if not self._titles:
             return self.async_abort(reason="no_locks")
