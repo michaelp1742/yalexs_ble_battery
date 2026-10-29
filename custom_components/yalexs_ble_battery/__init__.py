@@ -41,9 +41,15 @@ async def async_setup_entry(
         )
     entry.runtime_data = YaleXSBLEBatteryData(owner.runtime_data.lock)
 
+    reload_scheduled = False
+
     @callback
     def _async_owner_changed() -> None:
-        """Schedule this entry's reload when core's entry changes state."""
+        """Schedule one reload of this entry when core's entry changes state."""
+        nonlocal reload_scheduled
+        if reload_scheduled:
+            return
+        reload_scheduled = True
         # A reload started inside the listener loop of core's entry can remove this
         # listener while the loop runs, and the loop then skips the listener after it.
         hass.loop.call_soon(hass.config_entries.async_schedule_reload, entry.entry_id)

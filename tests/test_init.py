@@ -1,7 +1,7 @@
 """Tests for the Yale Access Bluetooth Battery setup and lifecycle."""
 
 from datetime import timedelta
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from freezegun.api import FrozenDateTimeFactory
 import pytest
@@ -109,4 +109,33 @@ async def test_core_change_reaches_the_next_listener(
         (ConfigEntryState.UNLOAD_IN_PROGRESS, ConfigEntryState.LOADED),
         (ConfigEntryState.NOT_LOADED, ConfigEntryState.LOADED),
     ]
+    assert config_entry.state is ConfigEntryState.SETUP_RETRY
+
+
+async def test_core_change_reloads_entry_once(
+    hass: HomeAssistant, owner_entry: MockConfigEntry, config_entry: MockConfigEntry
+) -> None:
+    """Each reload or unload of core's entry reloads the entry once."""
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
+    reloads: list[str] = []
+    async_reload = hass.config_entries.async_reload
+
+    async def _async_counting_reload(entry_id: str) -> bool:
+        reloads.append(entry_id)
+        return await async_reload(entry_id)
+
+    with patch.object(hass.config_entries, "async_reload", _async_counting_reload):
+        assert await hass.config_entries.async_reload(owner_entry.entry_id)
+        await hass.async_block_till_done()
+
+        assert reloads.count(config_entry.entry_id) == 1
+        assert config_entry.state is ConfigEntryState.LOADED
+        new_lock = owner_entry.runtime_data.lock
+        assert config_entry.runtime_data.lock is new_lock
+        new_lock.register_log_record_callback.assert_called_once()
+
+        assert await hass.config_entries.async_unload(owner_entry.entry_id)
+        await hass.async_block_till_done()
+
+    assert reloads.count(config_entry.entry_id) == 2
     assert config_entry.state is ConfigEntryState.SETUP_RETRY
