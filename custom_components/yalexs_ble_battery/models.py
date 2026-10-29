@@ -9,5 +9,4 @@ from yalexs_ble import PushLock
 class YaleXSBLEBatteryData:
     """Data for the battery entry of one lock."""
 
-    address: str
     lock: PushLock

@@ -2,20 +2,19 @@
 
 from typing import TYPE_CHECKING, override
 
-from yalexs_ble import LockOperation, parse_log_event_packet
+from yalexs_ble import LockOperation, PushLock, parse_log_event_packet
 
 from homeassistant.components.sensor import (
     RestoreSensor,
     SensorDeviceClass,
     SensorStateClass,
 )
-from homeassistant.const import EntityCategory, UnitOfElectricPotential
+from homeassistant.const import CONF_ADDRESS, EntityCategory, UnitOfElectricPotential
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import CONNECTION_BLUETOOTH, DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import YaleXSBLEBatteryConfigEntry
-from .models import YaleXSBLEBatteryData
 
 ATTR_TIME_STAMP = "time_stamp"
 
@@ -28,7 +27,13 @@ async def async_setup_entry(
     """Set up the battery voltage sensor."""
     if TYPE_CHECKING:
         assert entry.runtime_data is not None
-    async_add_entities([YaleXSBLEBatteryVoltageSensor(entry.runtime_data)])
+    async_add_entities(
+        [
+            YaleXSBLEBatteryVoltageSensor(
+                entry.data[CONF_ADDRESS], entry.runtime_data.lock
+            )
+        ]
+    )
 
 
 class YaleXSBLEBatteryVoltageSensor(RestoreSensor):
@@ -44,12 +49,12 @@ class YaleXSBLEBatteryVoltageSensor(RestoreSensor):
     _attr_suggested_display_precision = 3
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
-    def __init__(self, data: YaleXSBLEBatteryData) -> None:
+    def __init__(self, address: str, lock: PushLock) -> None:
         """Initialize the sensor."""
-        self._lock = data.lock
-        self._attr_unique_id = f"{data.address}_battery_voltage"
+        self._lock = lock
+        self._attr_unique_id = f"{address}_battery_voltage"
         self._attr_device_info = DeviceInfo(
-            connections={(CONNECTION_BLUETOOTH, data.lock.address)}
+            connections={(CONNECTION_BLUETOOTH, lock.address)}
         )
 
     @override

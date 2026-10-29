@@ -39,7 +39,7 @@ async def async_setup_entry(
         raise ConfigEntryNotReady(
             translation_domain=DOMAIN, translation_key="owner_not_loaded"
         )
-    entry.runtime_data = YaleXSBLEBatteryData(address, owner.runtime_data.lock)
+    entry.runtime_data = YaleXSBLEBatteryData(owner.runtime_data.lock)
 
     @callback
     def _async_owner_changed() -> None:
