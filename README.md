@@ -61,6 +61,11 @@ history.
 - It keeps its last reading across restarts of Home Assistant.
 - It shows the value the lock writes, with no range check.
 
+## Icon
+
+The integration's icon is drawn from the battery Bluetooth variant icon (`mdi-battery-bluetooth-variant`) of Material
+Design Icons by [Pictogrammers](https://pictogrammers.com/), which is under the Apache License 2.0.
+
 ## Development
 
 ```sh
