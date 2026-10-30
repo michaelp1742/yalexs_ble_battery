@@ -1,11 +1,47 @@
 # Yale Access Bluetooth Battery
 
-A custom integration for Home Assistant that shows the battery voltage a Yale lock writes into its activity log.
-It works beside Home Assistant's [Yale Access Bluetooth](https://www.home-assistant.io/integrations/yalexs_ble/)
-integration and uses that integration's connection to the lock.
+A proof of concept of a parallel integration for Home Assistant. It adds a battery voltage sensor to a Yale lock that
+Home Assistant's [Yale Access Bluetooth](https://www.home-assistant.io/integrations/yalexs_ble/) integration has
+loaded. It uses that integration's connection to the lock and changes nothing in Yale Access Bluetooth itself.
 
-It is a proof of concept of a parallel integration: it adds to a lock that Yale Access Bluetooth has loaded, and it
-changes nothing in Yale Access Bluetooth itself.
+The voltage comes from the lock's activity log. The integration reads the log through the changes of
+[Yale-Libs/yalexs-ble#422](https://github.com/Yale-Libs/yalexs-ble/pull/422) to
+[#426](https://github.com/Yale-Libs/yalexs-ble/pull/426), which hand every record the library reads to each
+registered reader as the 18 bytes the lock sent, with a decoder for them.
+
+## What it shows
+
+A parallel integration has a domain of its own. It finds the lock's `PushLock` on Yale Access Bluetooth's loaded
+config entry and adds its feature there. A feature that is policy over what the library already does therefore needs
+no change to Yale Access Bluetooth and no Home Assistant release. A new mechanism in the library still needs a
+library release and a bump of Home Assistant's pin, which is why this integration needs a yalexs-ble built from #426.
+
+This integration is a first case. It registers one reader of the activity log, decodes each record with
+`parse_log_event_packet`, and publishes the lock's battery voltage from the records that hold it.
+
+## The activity log changes it is built on
+
+The lock keeps a log of what happens to it, one record for each event, such as a lock operation, a keypad or
+credential entry, or a door change. The records written for a lock operation, a valid keypad entry, a credential
+entry, and a credential added or deleted hold the lock's battery voltage in millivolts. A `GetLog` command returns the
+oldest unread record, so a client reads the log one record at a time, oldest first. On the locks tested, a record that
+one client has read is gone for every other, the vendor's app and cloud included.
+
+These five pull requests change how yalexs-ble reads the log. Each is stacked on the one before it, so a build from
+#426 has them all.
+
+| Pull request | What it adds |
+|---|---|
+| [#422](https://github.com/Yale-Libs/yalexs-ble/pull/422) | the cause of a lock operation, from the record's `opCode`, in place of `UNKNOWN` or `PIN` |
+| [#423](https://github.com/Yale-Libs/yalexs-ble/pull/423) | `Lock.get_log`, which sends one `GetLog` and returns the reply unparsed, and a `LockStatus` member for each of the six lock states it lacked |
+| [#424](https://github.com/Yale-Libs/yalexs-ble/pull/424) | `parse_log_event_packet`, which decodes an 18-byte `GetLog` reply into a Python record, in Yale's numbering or August's |
+| [#425](https://github.com/Yale-Libs/yalexs-ble/pull/425) | `register_log_record_callback`: every record reaches each reader as the 18 bytes the lock sent, with a `backlog` flag |
+| [#426](https://github.com/Yale-Libs/yalexs-ble/pull/426) | the drain in a task of its own, started on each new connection and each settled lock or door change |
+
+The library sends each `GetLog` once and hands the reply to every registered reader in turn, awaiting each before the
+next read. This integration is one such reader: it calls `parse_log_event_packet` on each record and publishes the
+voltage from the records that hold it. Other integrations can register readers on the same `PushLock` beside it, and
+one drain serves them all.
 
 ## Requirements
 
