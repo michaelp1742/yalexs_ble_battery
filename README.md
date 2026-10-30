@@ -1,8 +1,9 @@
 # Yale Access Bluetooth Battery
 
-A proof of concept of a parallel integration for Home Assistant. It adds a battery voltage sensor to a Yale lock that
-Home Assistant's [Yale Access Bluetooth](https://www.home-assistant.io/integrations/yalexs_ble/) integration has
-loaded. It uses that integration's connection to the lock and changes nothing in Yale Access Bluetooth itself.
+A proof of concept of a parallel integration to `yalexs_ble`, Home Assistant's
+[Yale Access Bluetooth](https://www.home-assistant.io/integrations/yalexs_ble/) integration. It adds a battery voltage
+sensor to a Yale lock that Yale Access Bluetooth has loaded. It uses that integration's connection to the lock and
+changes nothing in Yale Access Bluetooth itself.
 
 The voltage comes from the lock's activity log. The integration reads the log through the changes of
 [Yale-Libs/yalexs-ble#422](https://github.com/Yale-Libs/yalexs-ble/pull/422) to
