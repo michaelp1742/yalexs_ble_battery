@@ -38,8 +38,8 @@ The entry starts with its option off. It then adds no entity and reads nothing f
 
 In the entry's options, turn on **Read the activity log for the battery voltage**.
 
-Home Assistant reads each record off the lock. A record it reads never reaches the Yale Home or August app's activity
-feed or the cloud.
+Home Assistant reads records directly off the lock. These records never reach the cloud for Activity reporting. The
+battery levels in the app also stop updating.
 
 With the option on, the entry adds the sensor **Battery voltage (activity log)**. The sensor is on a device of the
 entry's own, which has the same Bluetooth connection as the Yale Access Bluetooth device for the lock. Once the
