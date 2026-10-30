@@ -53,12 +53,6 @@ KEYPAD_UNLOCK_SLOT_205_TIME_STAMP = 0xA376A19A
 RF_CARD_UNLOCK_SLOT_8_TIME_STAMP = 0x6AE3F7F3
 
 
-@pytest.fixture
-def read_activity_log() -> bool:
-    """Return the activity log option of the battery entry."""
-    return True
-
-
 async def _async_set_option(
     hass: HomeAssistant, entry: MockConfigEntry, read_activity_log: bool
 ) -> None:

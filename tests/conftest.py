@@ -67,7 +67,7 @@ async def owner_entry(hass: HomeAssistant) -> MockConfigEntry:
 @pytest.fixture
 def read_activity_log() -> bool:
     """Return the activity log option of the battery entry."""
-    return False
+    return True
 
 
 @pytest.fixture

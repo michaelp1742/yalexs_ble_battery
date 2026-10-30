@@ -1,7 +1,7 @@
 """Tests for the Yale Access Bluetooth Battery setup and lifecycle."""
 
 from datetime import timedelta
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 from freezegun.api import FrozenDateTimeFactory
 import pytest
@@ -15,12 +15,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 
 from . import FRONT_ADDRESS, FRONT_TITLE, async_setup_owner
-
-
-@pytest.fixture
-def read_activity_log() -> bool:
-    """Return the activity log option of the battery entry."""
-    return True
 
 
 @pytest.mark.parametrize("read_activity_log", [False])
@@ -117,25 +111,20 @@ async def test_core_change_reloads_entry_once(
 ) -> None:
     """Each reload or unload of core's entry reloads the entry once."""
     assert await hass.config_entries.async_setup(config_entry.entry_id)
-    reloads: list[str] = []
-    async_reload = hass.config_entries.async_reload
+    states: list[ConfigEntryState] = []
+    config_entry.async_on_state_change(lambda: states.append(config_entry.state))
 
-    async def _async_counting_reload(entry_id: str) -> bool:
-        reloads.append(entry_id)
-        return await async_reload(entry_id)
+    assert await hass.config_entries.async_reload(owner_entry.entry_id)
+    await hass.async_block_till_done()
 
-    with patch.object(hass.config_entries, "async_reload", _async_counting_reload):
-        assert await hass.config_entries.async_reload(owner_entry.entry_id)
-        await hass.async_block_till_done()
+    assert states.count(ConfigEntryState.SETUP_IN_PROGRESS) == 1
+    assert config_entry.state is ConfigEntryState.LOADED
+    new_lock = owner_entry.runtime_data.lock
+    assert config_entry.runtime_data.lock is new_lock
+    new_lock.register_log_record_callback.assert_called_once()
 
-        assert reloads.count(config_entry.entry_id) == 1
-        assert config_entry.state is ConfigEntryState.LOADED
-        new_lock = owner_entry.runtime_data.lock
-        assert config_entry.runtime_data.lock is new_lock
-        new_lock.register_log_record_callback.assert_called_once()
+    assert await hass.config_entries.async_unload(owner_entry.entry_id)
+    await hass.async_block_till_done()
 
-        assert await hass.config_entries.async_unload(owner_entry.entry_id)
-        await hass.async_block_till_done()
-
-    assert reloads.count(config_entry.entry_id) == 2
+    assert states.count(ConfigEntryState.SETUP_IN_PROGRESS) == 2
     assert config_entry.state is ConfigEntryState.SETUP_RETRY

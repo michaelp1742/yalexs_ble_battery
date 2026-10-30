@@ -34,8 +34,7 @@ async def async_setup_entry(
     if not entry.options[CONF_READ_ACTIVITY_LOG]:
         entry.runtime_data = None
         return True
-    address = entry.data[CONF_ADDRESS]
-    if (owner := async_loaded_owners(hass).get(address)) is None:
+    if (owner := async_loaded_owners(hass).get(entry.data[CONF_ADDRESS])) is None:
         raise ConfigEntryNotReady(
             translation_domain=DOMAIN, translation_key="owner_not_loaded"
         )
