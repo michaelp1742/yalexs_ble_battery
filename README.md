@@ -35,7 +35,7 @@ These five pull requests change how yalexs-ble reads the log. Each is stacked on
 |---|---|
 | [#422](https://github.com/Yale-Libs/yalexs-ble/pull/422) | the cause of a lock operation, from the record's `opCode`, in place of `UNKNOWN` or `PIN` |
 | [#423](https://github.com/Yale-Libs/yalexs-ble/pull/423) | `Lock.get_log`, which sends one `GetLog` and returns the reply unparsed, and a `LockStatus` member for each of the six lock states it lacked |
-| [#424](https://github.com/Yale-Libs/yalexs-ble/pull/424) | `parse_log_event_packet`, which decodes an 18-byte `GetLog` reply into a Python record, in Yale's numbering or August's |
+| [#424](https://github.com/Yale-Libs/yalexs-ble/pull/424) | `parse_log_event_packet`, which decodes an 18-byte `GetLog` reply into a Python record |
 | [#425](https://github.com/Yale-Libs/yalexs-ble/pull/425) | `register_log_record_callback`: every record reaches each reader as the 18 bytes the lock sent, with a `backlog` flag |
 | [#426](https://github.com/Yale-Libs/yalexs-ble/pull/426) | the drain in a task of its own, started on each new connection and each settled lock or door change |
 
@@ -92,9 +92,7 @@ history.
   - a credential entry, such as an RF card;
   - a credential added or deleted.
 - Its `time_stamp` attribute is the record's time from the lock's clock, in seconds since 1970 UTC.
-- It updates each time Home Assistant reads one of those records, and no other record changes it. The record of the
-  keypad's own battery never changes it. On an August lock, the record types that only August numbers, `0x14` to
-  `0x1E`, never change it.
+- It updates each time Home Assistant reads one of those records.
 - It keeps its last reading across restarts of Home Assistant.
 - It shows the value the lock writes, with no range check.
 
