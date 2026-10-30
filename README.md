@@ -14,6 +14,13 @@ changes nothing in Yale Access Bluetooth itself.
 - yalexs-ble from [Yale-Libs/yalexs-ble#426](https://github.com/Yale-Libs/yalexs-ble/pull/426) on, or a release
   that contains it. The yalexs-ble that Home Assistant 2026.10 installs, 4.0.1, has neither
   `register_log_record_callback` nor `parse_log_event_packet`, and this integration needs both.
+- At each start, Home Assistant installs the yalexs-ble version that Yale Access Bluetooth pins, in place of any
+  other. Another version stays installed when Home Assistant runs with `--skip-pip-packages yalexs-ble`, or with
+  `--skip-pip`, which skips the requirements of every integration.
+- yalexs-ble from #426 requires cryptography 50.0.2 or later, and Home Assistant 2026.10 pins cryptography 50.0.1,
+  so no cryptography version meets both.
+- With yalexs-ble 4.0.1 in place, the entry fails to set up while its activity log option is on, and Home Assistant
+  logs an `ImportError`.
 
 ## Installation
 

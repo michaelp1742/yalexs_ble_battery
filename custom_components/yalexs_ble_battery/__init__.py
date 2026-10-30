@@ -64,5 +64,7 @@ async def async_unload_entry(
 ) -> bool:
     """Unload a config entry."""
     if entry.runtime_data is None:
+        # Setup forwarded no platform. The option is not checked here: the options
+        # flow stores its new value before the reload that runs this unload.
         return True
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
