@@ -36,7 +36,7 @@ These five pull requests change how yalexs-ble reads the log. Each is stacked on
 | [#422](https://github.com/Yale-Libs/yalexs-ble/pull/422) | the cause of a lock operation, from the record's `opCode`, in place of `UNKNOWN` or `PIN` |
 | [#423](https://github.com/Yale-Libs/yalexs-ble/pull/423) | `Lock.get_log`, which sends one `GetLog` and returns the reply unparsed, and a `LockStatus` member for each of the six lock states it lacked |
 | [#424](https://github.com/Yale-Libs/yalexs-ble/pull/424) | `parse_log_event_packet`, which decodes an 18-byte `GetLog` reply into a Python record |
-| [#425](https://github.com/Yale-Libs/yalexs-ble/pull/425) | `register_log_record_callback`: every record reaches each reader as the 18 bytes the lock sent, with a `backlog` flag |
+| [#425](https://github.com/Yale-Libs/yalexs-ble/pull/425) | `register_log_record_callback`: every record reaches each reader as the 18 bytes the lock sent, with a `backlog` flag for existing records that predate the registration |
 | [#426](https://github.com/Yale-Libs/yalexs-ble/pull/426) | the drain in a task of its own, started on each new connection and each settled lock or door change |
 
 The library sends each `GetLog` once and hands the reply to every registered reader in turn, awaiting each before the
