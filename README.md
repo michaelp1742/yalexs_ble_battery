@@ -41,14 +41,16 @@ history.
 
 ## The sensor
 
-- The sensor shows the battery voltage in the last `LockOperation` record that Home Assistant has read from the
-  lock, in volts to the millivolt.
+- The sensor shows the lock's battery voltage, in volts to the millivolt, from the last record that Home Assistant
+  has read from the lock for one of these events:
+  - a lock operation;
+  - a valid PIN or fingerprint entry at the keypad;
+  - a credential entry, such as an RF card;
+  - a credential added or deleted.
 - Its `time_stamp` attribute is the record's time from the lock's clock, in seconds since 1970 UTC.
-- It updates each time Home Assistant reads a `LockOperation` record from the lock, and no other record changes it.
-  In testing on a lock with a keypad and a card reader, each of 28 accepted PIN, fingerprint, or card entries wrote a
-  record of another type. A `LockOperation` record followed each within a minute, and in 26 of the 28 it held the
-  same voltage as the entry's record. On such a lock the sensor updates at that `LockOperation` record, such as the
-  record of the relock that follows.
+- It updates each time Home Assistant reads one of those records, and no other record changes it. The record of the
+  keypad's own battery never changes it. On an August lock, the record types that only August numbers, `0x14` to
+  `0x1E`, never change it.
 - It keeps its last reading across restarts of Home Assistant.
 - It shows the value the lock writes, with no range check.
 

@@ -29,14 +29,28 @@ UNIQUE_ID = f"{ADDRESS}_battery_voltage"
 
 # Captured GetLog replies.
 INSIDE_BUTTON_LOCKED = bytes.fromhex("bb2d00d4000c0500a7eedd6a1914190f0200")
-AUTO_RELOCK_LOCKED = bytes.fromhex("bb2d000e000505007baddd6a2017193f0200")
-KEYPAD_LOCK_BUTTON = bytes.fromhex("bb2d0056000b0500a0a176a3df14194a0200")
 END_OF_LOG = bytes.fromhex("bb2d00de800200009aa176a3a8a176a30200")
 KEYPAD_UNLOCK_SLOT_205 = bytes.fromhex("bb2d0072079aa176a333004bea14cd000200")
 KEYPAD_INFO = bytes.fromhex("bb2d00c404922fe06ac30000008000000200")
+RF_CARD_UNLOCK_SLOT_8 = bytes.fromhex("bb2d00760ef3f7e36a0108001337f2160200")
 
-# The time stamp of INSIDE_BUTTON_LOCKED, bytes 8 to 11 of the frame.
+# Constructed GetLog replies: RF_CARD_UNLOCK_SLOT_8 with byte 4, the log_type,
+# set to 0x0C and 0x0D, and byte 3, the checksum, recomputed so the 18 bytes
+# sum to 0 modulo 256.
+CREDENTIAL_ADDED = bytes.fromhex("bb2d00780cf3f7e36a0108001337f2160200")
+CREDENTIAL_DELETED = bytes.fromhex("bb2d00770df3f7e36a0108001337f2160200")
+# Constructed the same way with log_type 0x12, and battery_level_decivolt,
+# byte 11, set to 58.
+HOMEKEY_OPERATION = bytes.fromhex("bb2d003812f3f7e36a01083a1337f2160200")
+# Constructed the same way with log_type 0x15, and battery_level_millivolt,
+# bytes 9 and 10, set to 5880.
+BATTERY_INFO = bytes.fromhex("bb2d006a15f3f7e36af816001337f2160200")
+
+# The time_stamp of INSIDE_BUTTON_LOCKED, bytes 8 to 11, and of
+# KEYPAD_UNLOCK_SLOT_205 and RF_CARD_UNLOCK_SLOT_8, bytes 5 to 8.
 INSIDE_BUTTON_LOCKED_TIME_STAMP = 0x6ADDEEA7
+KEYPAD_UNLOCK_SLOT_205_TIME_STAMP = 0xA376A19A
+RF_CARD_UNLOCK_SLOT_8_TIME_STAMP = 0x6AE3F7F3
 
 
 @pytest.fixture
@@ -122,47 +136,92 @@ async def test_option_on_adds_sensor_on_linked_device(
 
 
 @pytest.mark.parametrize(
-    "records",
+    ("records", "voltage", "time_stamp"),
     [
-        pytest.param([(INSIDE_BUTTON_LOCKED, False)], id="lock_operation"),
+        pytest.param(
+            [(INSIDE_BUTTON_LOCKED, False)],
+            "5.145",
+            INSIDE_BUTTON_LOCKED_TIME_STAMP,
+            id="lock_operation",
+        ),
+        pytest.param(
+            [(KEYPAD_UNLOCK_SLOT_205, False)],
+            "5.354",
+            KEYPAD_UNLOCK_SLOT_205_TIME_STAMP,
+            id="code_operation",
+        ),
+        pytest.param(
+            [(RF_CARD_UNLOCK_SLOT_8, False)],
+            "5.874",
+            RF_CARD_UNLOCK_SLOT_8_TIME_STAMP,
+            id="credential_operation",
+        ),
+        pytest.param(
+            [(CREDENTIAL_ADDED, False)],
+            "5.874",
+            RF_CARD_UNLOCK_SLOT_8_TIME_STAMP,
+            id="credential_added",
+        ),
+        pytest.param(
+            [(CREDENTIAL_DELETED, False)],
+            "5.874",
+            RF_CARD_UNLOCK_SLOT_8_TIME_STAMP,
+            id="credential_deleted",
+        ),
         pytest.param(
             [
-                (KEYPAD_LOCK_BUTTON, True),
-                (AUTO_RELOCK_LOCKED, True),
+                (KEYPAD_UNLOCK_SLOT_205, True),
+                (RF_CARD_UNLOCK_SLOT_8, True),
                 (INSIDE_BUTTON_LOCKED, True),
             ],
+            "5.145",
+            INSIDE_BUTTON_LOCKED_TIME_STAMP,
             id="backlog_last_delivered_shown",
         ),
         pytest.param(
-            [
-                (INSIDE_BUTTON_LOCKED, True),
-                (END_OF_LOG, False),
-                (KEYPAD_UNLOCK_SLOT_205, False),
-            ],
-            id="get_log_error_and_code_operation_ignored",
+            [(INSIDE_BUTTON_LOCKED, True), (END_OF_LOG, False)],
+            "5.145",
+            INSIDE_BUTTON_LOCKED_TIME_STAMP,
+            id="get_log_error_ignored",
         ),
         pytest.param(
             [(INSIDE_BUTTON_LOCKED, False), (KEYPAD_INFO, False)],
+            "5.145",
+            INSIDE_BUTTON_LOCKED_TIME_STAMP,
             id="keypad_info_ignored",
+        ),
+        pytest.param(
+            [(INSIDE_BUTTON_LOCKED, False), (HOMEKEY_OPERATION, False)],
+            "5.145",
+            INSIDE_BUTTON_LOCKED_TIME_STAMP,
+            id="homekey_operation_ignored",
+        ),
+        pytest.param(
+            [(INSIDE_BUTTON_LOCKED, False), (BATTERY_INFO, False)],
+            "5.145",
+            INSIDE_BUTTON_LOCKED_TIME_STAMP,
+            id="battery_info_ignored",
         ),
     ],
 )
-async def test_sensor_shows_the_last_lock_operation(
+async def test_sensor_shows_the_last_lock_voltage_record(
     hass: HomeAssistant,
     owner_entry: MockConfigEntry,
     config_entry: MockConfigEntry,
     records: list[tuple[bytes, bool]],
+    voltage: str,
+    time_stamp: int,
 ) -> None:
-    """The sensor shows the voltage and time stamp of the last LockOperation."""
+    """The last record in LOCK_VOLTAGE_RECORDS sets the voltage and time stamp shown."""
     assert await hass.config_entries.async_setup(config_entry.entry_id)
 
     for raw, backlog in records:
         await _async_deliver(owner_entry.runtime_data.lock, raw, backlog)
 
     state = hass.states.get(ENTITY_ID)
-    assert state.state == "5.145"
+    assert state.state == voltage
     assert state.attributes["unit_of_measurement"] == "V"
-    assert state.attributes["time_stamp"] == INSIDE_BUTTON_LOCKED_TIME_STAMP
+    assert state.attributes["time_stamp"] == time_stamp
 
 
 async def test_sensor_restores_the_last_reading(

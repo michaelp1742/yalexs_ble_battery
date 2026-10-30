@@ -2,7 +2,15 @@
 
 from typing import TYPE_CHECKING, override
 
-from yalexs_ble import LockOperation, PushLock, parse_log_event_packet
+from yalexs_ble import (
+    CodeOperation,
+    CredentialAdded,
+    CredentialDeleted,
+    CredentialOperation,
+    LockOperation,
+    PushLock,
+    parse_log_event_packet,
+)
 
 from homeassistant.components.sensor import (
     RestoreSensor,
@@ -17,6 +25,15 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from . import YaleXSBLEBatteryConfigEntry
 
 ATTR_TIME_STAMP = "time_stamp"
+
+# The records whose battery_level is the lock's battery voltage in millivolts.
+LOCK_VOLTAGE_RECORDS = (
+    LockOperation,
+    CodeOperation,
+    CredentialOperation,
+    CredentialAdded,
+    CredentialDeleted,
+)
 
 
 async def async_setup_entry(
@@ -72,9 +89,11 @@ class YaleXSBLEBatteryVoltageSensor(RestoreSensor):
         )
 
     async def _async_log_record(self, raw: bytes, backlog: bool) -> None:
-        """Publish the battery voltage of each LockOperation record."""
+        """Publish the battery voltage of each record in LOCK_VOLTAGE_RECORDS."""
+        # backlog is not used: GetLog takes the oldest unread record off the lock, so
+        # a backlog record was written after the record whose reading is shown.
         record = parse_log_event_packet(raw)
-        if isinstance(record, LockOperation):
+        if isinstance(record, LOCK_VOLTAGE_RECORDS):
             self._attr_native_value = record.battery_level
             self._attr_extra_state_attributes = {ATTR_TIME_STAMP: record.time_stamp}
             self.async_write_ha_state()
