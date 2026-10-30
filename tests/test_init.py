@@ -57,7 +57,7 @@ async def test_setup_takes_the_lock_of_core_entry_for_its_address(
 
     assert await hass.config_entries.async_setup(config_entry.entry_id)
 
-    assert config_entry.runtime_data.lock is owner_entry.runtime_data.lock
+    assert config_entry.runtime_data is owner_entry.runtime_data.lock
 
 
 async def test_core_unload_reloads_entry_until_core_loads(
@@ -82,8 +82,8 @@ async def test_core_unload_reloads_entry_until_core_loads(
     await hass.async_block_till_done()
 
     assert config_entry.state is ConfigEntryState.LOADED
-    assert config_entry.runtime_data.lock is owner_entry.runtime_data.lock
-    assert config_entry.runtime_data.lock is not old_lock
+    assert config_entry.runtime_data is owner_entry.runtime_data.lock
+    assert config_entry.runtime_data is not old_lock
 
 
 async def test_core_change_reaches_the_next_listener(
@@ -120,7 +120,7 @@ async def test_core_change_reloads_entry_once(
     assert states.count(ConfigEntryState.SETUP_IN_PROGRESS) == 1
     assert config_entry.state is ConfigEntryState.LOADED
     new_lock = owner_entry.runtime_data.lock
-    assert config_entry.runtime_data.lock is new_lock
+    assert config_entry.runtime_data is new_lock
     new_lock.register_log_record_callback.assert_called_once()
 
     assert await hass.config_entries.async_unload(owner_entry.entry_id)

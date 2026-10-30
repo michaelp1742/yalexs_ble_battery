@@ -8,14 +8,15 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryNotReady
 
 from .const import CONF_READ_ACTIVITY_LOG, DOMAIN, OWNER_DOMAIN
-from .models import YaleXSBLEBatteryData
 
 if TYPE_CHECKING:
+    from yalexs_ble import PushLock
+
     from homeassistant.components.yalexs_ble import YALEXSBLEConfigEntry
 
 PLATFORMS = [Platform.SENSOR]
 
-type YaleXSBLEBatteryConfigEntry = ConfigEntry[YaleXSBLEBatteryData | None]
+type YaleXSBLEBatteryConfigEntry = ConfigEntry[PushLock | None]
 
 
 @callback
@@ -38,7 +39,7 @@ async def async_setup_entry(
         raise ConfigEntryNotReady(
             translation_domain=DOMAIN, translation_key="owner_not_loaded"
         )
-    entry.runtime_data = YaleXSBLEBatteryData(owner.runtime_data.lock)
+    entry.runtime_data = owner.runtime_data.lock
 
     reload_scheduled = False
 

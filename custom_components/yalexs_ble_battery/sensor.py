@@ -45,11 +45,7 @@ async def async_setup_entry(
     if TYPE_CHECKING:
         assert entry.runtime_data is not None
     async_add_entities(
-        [
-            YaleXSBLEBatteryVoltageSensor(
-                entry.data[CONF_ADDRESS], entry.runtime_data.lock
-            )
-        ]
+        [YaleXSBLEBatteryVoltageSensor(entry.data[CONF_ADDRESS], entry.runtime_data)]
     )
 
 
